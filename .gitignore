@@ -9,3 +9,7 @@
 *.tmp
 *.bak
 *~
+
+# Old versions
+*_v*.gs
+*_old.*

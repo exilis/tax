@@ -67,6 +67,13 @@ Grid search across 4 dimensions:
 - Searches ~21,000 combinations per revenue scenario
 - Tests 21 revenue scenarios (base + increments of ¥3M up to +¥60M)
 
+**Key optimization parameter:**
+- Future retirement bonus tax rate: 27.5% (conservative upper bound)
+- This is the theoretical maximum effective tax rate on retirement income
+- Derived from: Maximum tax rate 55.95% (45% income tax + surtax + 10% resident tax) × 1/2 (retirement income tax rule) = 27.975%
+- Actual rates are 3-15% for realistic retirement amounts (¥30M-¥100M)
+- See TAX_COMPARISON.md for detailed mathematical derivation
+
 ### Output
 - `outputResultsWithVariations()` (line 622): Generates horizontal comparison table with:
   - Optimal allocations (monthly and annual)
@@ -81,6 +88,9 @@ Grid search across 4 dimensions:
 - Resident tax: Flat 10% + ¥5,300 (line 186-195)
 - Corporate tax: 15%/23.2% tiered (line 204-220)
 - Individual business tax: 5% (line 243)
+- Retirement income tax: (Retirement pay - deduction) × 1/2, then progressive rates apply
+  - Deduction: ¥400k/year for first 20 years, then ¥700k/year
+  - Effective rate: 0-27.975% (theoretical maximum)
 
 ### Social Insurance (Hyogo Prefecture)
 - Health insurance (協会けんぽ): 10.29% (line 84)

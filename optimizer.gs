@@ -177,17 +177,24 @@ function setupSheet() {
 // 社会保険料の計算（健保+介護+年金+雇用保険）
 // ============================================================
 function calcShakaihoken(monthlySalary, kenpoRate = 0.1029, kaigoRate = 0.016, nenkinRate = 0.183, koyoRateWorker = 0.006, koyoRateEmployer = 0.0095) {
-  const stdSalary = getStandardSalary(monthlySalary);
+  // 健康保険と厚生年金で標準報酬月額の上限が異なる
+  const kenpoStdSalary = getStandardSalaryKenpo(monthlySalary);  // 健康保険：上限1,390,000円
+  const nenkinStdSalary = getStandardSalaryNenkin(monthlySalary); // 厚生年金：上限650,000円
 
-  // 標準報酬月額ベースの保険料（健保+介護+年金）
-  const shahoMonthly = stdSalary * (kenpoRate + kaigoRate + nenkinRate);
+  // 健康保険料（健保+介護）
+  const kenpoMonthly = kenpoStdSalary * (kenpoRate + kaigoRate);
+
+  // 厚生年金保険料
+  const nenkinMonthly = nenkinStdSalary * nenkinRate;
 
   // 雇用保険料（実際の給与ベース）
   const koyoMonthlyWorker = monthlySalary * koyoRateWorker;
   const koyoMonthlyEmployer = monthlySalary * koyoRateEmployer;
 
   // 年額計算
-  const shahoYearly = shahoMonthly * 12;
+  const kenpoYearly = kenpoMonthly * 12;
+  const nenkinYearly = nenkinMonthly * 12;
+  const shahoYearly = kenpoYearly + nenkinYearly;
   const koyoYearlyWorker = koyoMonthlyWorker * 12;
   const koyoYearlyEmployer = koyoMonthlyEmployer * 12;
 
@@ -198,8 +205,8 @@ function calcShakaihoken(monthlySalary, kenpoRate = 0.1029, kaigoRate = 0.016, n
   };
 }
 
-// 標準報酬月額の取得
-function getStandardSalary(salary) {
+// 標準報酬月額の取得（厚生年金用・上限650,000円）
+function getStandardSalaryNenkin(salary) {
   const grades = [
     [63000, 58000], [73000, 68000], [83000, 78000], [93000, 88000],
     [101000, 98000], [107000, 104000], [114000, 110000], [122000, 118000],
@@ -211,13 +218,45 @@ function getStandardSalary(salary) {
     [485000, 470000], [515000, 500000], [545000, 530000], [575000, 560000],
     [605000, 590000], [635000, 620000], [665000, 650000]
   ];
-  
+
   for (let i = 0; i < grades.length; i++) {
     if (salary <= grades[i][0]) {
       return grades[i][1];
     }
   }
-  return 650000; // 上限
+  return 650000; // 上限（第32等級）
+}
+
+// 標準報酬月額の取得（健康保険用・上限1,390,000円）
+function getStandardSalaryKenpo(salary) {
+  const grades = [
+    [63000, 58000], [73000, 68000], [83000, 78000], [93000, 88000],
+    [101000, 98000], [107000, 104000], [114000, 110000], [122000, 118000],
+    [130000, 126000], [138000, 134000], [146000, 142000], [155000, 150000],
+    [165000, 160000], [175000, 170000], [185000, 180000], [195000, 190000],
+    [210000, 200000], [230000, 220000], [250000, 240000], [270000, 260000],
+    [290000, 280000], [310000, 300000], [330000, 320000], [350000, 340000],
+    [370000, 360000], [395000, 380000], [425000, 410000], [455000, 440000],
+    [485000, 470000], [515000, 500000], [545000, 530000], [575000, 560000],
+    [605000, 590000], [635000, 620000], [665000, 650000],
+    // 健康保険は第50等級まで存在（厚生年金は第32等級で終了）
+    [695000, 680000], [730000, 710000], [770000, 750000], [810000, 790000],
+    [855000, 830000], [905000, 880000], [955000, 930000], [1005000, 980000],
+    [1055000, 1030000], [1115000, 1090000], [1175000, 1150000], [1235000, 1210000],
+    [1295000, 1270000], [1355000, 1330000], [1415000, 1390000]
+  ];
+
+  for (let i = 0; i < grades.length; i++) {
+    if (salary <= grades[i][0]) {
+      return grades[i][1];
+    }
+  }
+  return 1390000; // 上限（第50等級）
+}
+
+// 後方互換性のため、既存の関数名も残す（厚生年金用）
+function getStandardSalary(salary) {
+  return getStandardSalaryNenkin(salary);
 }
 
 // ============================================================
@@ -856,13 +895,13 @@ function runOptimization() {
             continue;
           }
 
-          // 総資産 = 3人の手取り + Linhのコスト + P&I課税所得の実質価値 + 企業型DC・中退共の実質価値
+          // 総資産 = 3人の手取り + Linhのコスト + P&I税引後利益の実質価値 + 企業型DC・中退共の実質価値
           const linhCost = result.linhCost; // Linhの企業型DC・中退共はlinhCostに含まれている
-          // 退職金ルートでは法人税は損金算入により実質0円
-          // P&I課税所得がそのまま退職金原資となり、個人税（退職所得税）のみ負担
-          const piAfterTaxProfitRealValue = result.piIncome * (1 - futurePayoutTaxRate);
+          // 内部留保（税引後利益）を将来役員退職金として払い出す際の実質価値
+          // 法人税は蓄積時に既に支払済み、退職金支給時に個人税のみ負担
+          const piAfterTaxProfitRealValue = piAfterTaxProfit * (1 - futurePayoutTaxRate);
           // 実際の金額に基づく実効税率（出力用）
-          const actualRetirementTaxRate = calcRetirementTaxRate(result.piIncome, retirementYears);
+          const actualRetirementTaxRate = calcRetirementTaxRate(piAfterTaxProfit, retirementYears);
           // 企業型DC・中退共は将来退職所得として受け取る（退職所得控除適用、実効税率10%と想定）
           const dcChutaikyoTaxRate = 0.10;
           const dcChutaikyoValue = (result.hayashiKigyouDC + result.doiKigyouDC + result.doiChutaikyo) * (1 - dcChutaikyoTaxRate);
@@ -1014,9 +1053,9 @@ function outputResultsWithVariations(allResults, futurePayoutTaxRate, retirement
         {label: '★最大化された総資産', getValue: (p) => p.params.totalWealth, highlight: true},
         {label: '　林・土井・専従者の手取り', getValue: (p) => p.params.result.hayashiTedori + p.params.result.doiTedori + p.params.result.haigushaTedori},
         {label: '　Linhのコスト（給与+社保+中退共+DC）', getValue: (p) => p.params.result.linhCost},
-        {label: '　P&I課税所得の実質価値（退職金ルート）', getValue: (p) => p.params.piAfterTaxProfitRealValue},
-        {label: '　　将来期待される役員退職金（額面）', getValue: (p) => p.params.result.piIncome},
-        {label: '　　退職金・実効税率', getValue: (p) => p.params.retirementTaxRate, isPercent: true},
+        {label: '　P&I税引後利益の実質価値（退職金ルート）', getValue: (p) => p.params.piAfterTaxProfitRealValue},
+        {label: '　　将来期待される役員退職金（額面）', getValue: (p) => p.params.result.piIncome - p.params.result.piTax},
+        {label: '　　退職金・個人税実効税率', getValue: (p) => p.params.retirementTaxRate, isPercent: true},
         {label: '　　退職金・手取り（実質価値）', getValue: (p) => p.params.piAfterTaxProfitRealValue},
         {label: '　企業型DC・中退共（実質価値）', getValue: (p) => (p.params.result.hayashiKigyouDC + p.params.result.doiKigyouDC + p.params.result.doiChutaikyo) * 0.9},
         {label: '　　内訳：林・企業型DC', getValue: (p) => p.params.result.hayashiKigyouDC},
@@ -1060,8 +1099,8 @@ function outputResultsWithVariations(allResults, futurePayoutTaxRate, retirement
         {label: '　土井郁子・手取り', getValue: (p) => p.params.result.doiTedori},
         {label: '　Linh・手取り', getValue: (p) => p.params.result.linhTedori},
         {label: '　専従者・手取り', getValue: (p) => p.params.result.haigushaTedori},
-        {label: 'P&I課税所得（将来の退職金原資）', getValue: (p) => p.params.result.piIncome},
-        {label: 'P&I課税所得の実質価値（退職金ルート）', getValue: (p) => p.params.piAfterTaxProfitRealValue},
+        {label: 'P&I税引後利益（将来の退職金原資）', getValue: (p) => p.params.result.piIncome - p.params.result.piTax},
+        {label: 'P&I税引後利益の実質価値（退職金ルート）', getValue: (p) => p.params.piAfterTaxProfitRealValue},
         {label: '　林佑樹・等分配差分', getValue: (p) => (p.params.result.hayashiTedori + p.params.result.haigushaTedori) - (p.params.result.totalTedori / 2)},
         {label: '　土井郁子・等分配差分', getValue: (p) => p.params.result.doiTedori - (p.params.result.totalTedori / 2)},
         {label: 'Linhからの払い戻し後の残金', getValue: (p) => ((p.params.result.hayashiTedori + p.params.result.haigushaTedori) - (p.params.result.totalTedori / 2)) + (p.params.result.doiTedori - (p.params.result.totalTedori / 2)) + p.params.result.linhCost}
@@ -1102,12 +1141,13 @@ function outputResultsWithVariations(allResults, futurePayoutTaxRate, retirement
         {label: '想定勤続年数', getValue: (p) => retirementYears.toLocaleString() + '年'},
         {label: '', getValue: (p) => ''},
         {label: '【退職金ルート】', getValue: (p) => ''},
-        {label: 'P&I課税所得（退職金原資）', getValue: (p) => p.params.result.piIncome},
-        {label: '法人税', getValue: (p) => '損金算入により0円'},
-        {label: '退職金・実効税率', getValue: (p) => p.params.retirementTaxRate, isPercent: true},
-        {label: '退職金・個人税額', getValue: (p) => p.params.result.piIncome * p.params.retirementTaxRate},
+        {label: 'P&I課税所得', getValue: (p) => p.params.result.piIncome},
+        {label: '法人税（蓄積時）', getValue: (p) => p.params.result.piTax},
+        {label: '税引後利益（退職金原資）', getValue: (p) => p.params.result.piIncome - p.params.result.piTax},
+        {label: '退職金・個人税実効税率', getValue: (p) => p.params.retirementTaxRate, isPercent: true},
+        {label: '退職金・個人税額', getValue: (p) => (p.params.result.piIncome - p.params.result.piTax) * p.params.retirementTaxRate},
         {label: '退職金・手取り', getValue: (p) => p.params.piAfterTaxProfitRealValue},
-        {label: '総合実効税率', getValue: (p) => p.params.retirementTaxRate, isPercent: true},
+        {label: '総合実効税率（法人税+個人税）', getValue: (p) => (p.params.result.piTax + (p.params.result.piIncome - p.params.result.piTax) * p.params.retirementTaxRate) / p.params.result.piIncome, isPercent: true},
         {label: '', getValue: (p) => ''},
         {label: '【配当ルート（参考）】', getValue: (p) => ''},
         {label: 'P&I課税所得', getValue: (p) => p.params.result.piIncome},
@@ -1224,38 +1264,38 @@ function outputResultsWithVariations(allResults, futurePayoutTaxRate, retirement
       ]
     },
     {
-      title: '【役員退職金シミュレーション（P&I課税所得の分配）】',
+      title: '【役員退職金シミュレーション（P&I税引後利益の分配）】',
       rows: [
-        {label: 'P&I課税所得（退職金原資）', getValue: (p) => p.params.result.piIncome},
+        {label: 'P&I税引後利益（退職金原資）', getValue: (p) => p.params.result.piIncome - p.params.result.piTax},
         {label: '林・想定勤続年数', getValue: (p) => retirementYears.toLocaleString() + '年'},
         {label: '土井・想定勤続年数', getValue: (p) => p.params.result.doiIsYakuin ? p.params.result.doiRetirementYears.toLocaleString() + '年' : 'N/A（従業員）'},
         {label: '', getValue: (p) => ''},
 
         {label: '【分配パターン1：林100%】', getValue: (p) => ''},
-        {label: '林・退職金額', getValue: (p) => p.params.result.piIncome},
-        {label: '林・実効税率', getValue: (p) => p.params.retirementTaxRate, isPercent: true},
+        {label: '林・退職金額', getValue: (p) => p.params.result.piIncome - p.params.result.piTax},
+        {label: '林・個人税実効税率', getValue: (p) => p.params.retirementTaxRate, isPercent: true},
         {label: '林・手取り', getValue: (p) => p.params.piAfterTaxProfitRealValue},
         {label: '（参考）配当での手取り', getValue: (p) => (p.params.result.piIncome - p.params.result.piTax) * (1 - 0.20315)},
         {label: '退職金の優位性（配当比）', getValue: (p) => p.params.piAfterTaxProfitRealValue - (p.params.result.piIncome - p.params.result.piTax) * (1 - 0.20315)},
         {label: '', getValue: (p) => ''},
 
         {label: '【分配パターン2：土井100%】', getValue: (p) => p.params.result.doiIsYakuin ? '' : 'N/A'},
-        {label: '土井・退職金額', getValue: (p) => p.params.result.doiIsYakuin ? p.params.result.piIncome : 'N/A'},
-        {label: '土井・実効税率', getValue: (p) => {
+        {label: '土井・退職金額', getValue: (p) => p.params.result.doiIsYakuin ? p.params.result.piIncome - p.params.result.piTax : 'N/A'},
+        {label: '土井・個人税実効税率', getValue: (p) => {
           if (!p.params.result.doiIsYakuin) return 'N/A';
-          const amount = p.params.result.piIncome;
+          const amount = p.params.result.piIncome - p.params.result.piTax;
           return calcRetirementTaxRate(amount, p.params.result.doiRetirementYears);
         }, isPercent: true},
         {label: '土井・手取り', getValue: (p) => {
           if (!p.params.result.doiIsYakuin) return 'N/A';
-          const amount = p.params.result.piIncome;
+          const amount = p.params.result.piIncome - p.params.result.piTax;
           const rate = calcRetirementTaxRate(amount, p.params.result.doiRetirementYears);
           return amount * (1 - rate);
         }},
         {label: '（参考）配当での手取り', getValue: (p) => p.params.result.doiIsYakuin ? (p.params.result.piIncome - p.params.result.piTax) * (1 - 0.20315) : 'N/A'},
         {label: '退職金の優位性（配当比）', getValue: (p) => {
           if (!p.params.result.doiIsYakuin) return 'N/A';
-          const amount = p.params.result.piIncome;
+          const amount = p.params.result.piIncome - p.params.result.piTax;
           const rate = calcRetirementTaxRate(amount, p.params.result.doiRetirementYears);
           const retirementTedori = amount * (1 - rate);
           const dividendTedori = (p.params.result.piIncome - p.params.result.piTax) * (1 - 0.20315);
@@ -1272,38 +1312,38 @@ function outputResultsWithVariations(allResults, futurePayoutTaxRate, retirement
         {label: '', getValue: (p) => ''},
 
         {label: '【分配パターン3：5:5均等分散】', getValue: (p) => p.params.result.doiIsYakuin ? '' : 'N/A'},
-        {label: '林・退職金額', getValue: (p) => p.params.result.piIncome * 0.5},
-        {label: '林・実効税率', getValue: (p) => {
-          const amount = p.params.result.piIncome * 0.5;
+        {label: '林・退職金額', getValue: (p) => (p.params.result.piIncome - p.params.result.piTax) * 0.5},
+        {label: '林・個人税実効税率', getValue: (p) => {
+          const amount = (p.params.result.piIncome - p.params.result.piTax) * 0.5;
           return calcRetirementTaxRate(amount, retirementYears);
         }, isPercent: true},
         {label: '林・手取り', getValue: (p) => {
-          const amount = p.params.result.piIncome * 0.5;
+          const amount = (p.params.result.piIncome - p.params.result.piTax) * 0.5;
           const rate = calcRetirementTaxRate(amount, retirementYears);
           return amount * (1 - rate);
         }},
-        {label: '土井・退職金額', getValue: (p) => p.params.result.doiIsYakuin ? p.params.result.piIncome * 0.5 : 'N/A'},
-        {label: '土井・実効税率', getValue: (p) => {
+        {label: '土井・退職金額', getValue: (p) => p.params.result.doiIsYakuin ? (p.params.result.piIncome - p.params.result.piTax) * 0.5 : 'N/A'},
+        {label: '土井・個人税実効税率', getValue: (p) => {
           if (!p.params.result.doiIsYakuin) return 'N/A';
-          const amount = p.params.result.piIncome * 0.5;
+          const amount = (p.params.result.piIncome - p.params.result.piTax) * 0.5;
           return calcRetirementTaxRate(amount, p.params.result.doiRetirementYears);
         }, isPercent: true},
         {label: '土井・手取り', getValue: (p) => {
           if (!p.params.result.doiIsYakuin) return 'N/A';
-          const amount = p.params.result.piIncome * 0.5;
+          const amount = (p.params.result.piIncome - p.params.result.piTax) * 0.5;
           const rate = calcRetirementTaxRate(amount, p.params.result.doiRetirementYears);
           return amount * (1 - rate);
         }},
         {label: '合計手取り', getValue: (p) => {
           if (!p.params.result.doiIsYakuin) return 'N/A';
-          const amount = p.params.result.piIncome * 0.5;
+          const amount = (p.params.result.piIncome - p.params.result.piTax) * 0.5;
           const hayashiRate = calcRetirementTaxRate(amount, retirementYears);
           const doiRate = calcRetirementTaxRate(amount, p.params.result.doiRetirementYears);
           return amount * (2 - hayashiRate - doiRate);
         }},
         {label: '分散による追加節税額', getValue: (p) => {
           if (!p.params.result.doiIsYakuin) return 'N/A';
-          const amount = p.params.result.piIncome * 0.5;
+          const amount = (p.params.result.piIncome - p.params.result.piTax) * 0.5;
           const hayashiRate = calcRetirementTaxRate(amount, retirementYears);
           const doiRate = calcRetirementTaxRate(amount, p.params.result.doiRetirementYears);
           const totalTedori = amount * (2 - hayashiRate - doiRate);
