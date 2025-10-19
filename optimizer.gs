@@ -939,8 +939,9 @@ function outputResultsWithVariations(allResults, futurePayoutTaxRate, retirement
     resultSheet = ss.insertSheet(sheetName);
   }
   resultSheet.clear();
-  
+
   const numPatterns = allResults.length;
+  const numCols = numPatterns + 1;
 
   // タイトル（シート名に応じて変更）
   const modeLabel = sheetName.includes('役員') ? '【土井：役員】' :
@@ -949,21 +950,43 @@ function outputResultsWithVariations(allResults, futurePayoutTaxRate, retirement
   const isDoiYakuin = sheetName.includes('役員');
   const doiLabel = isDoiYakuin ? '土井・役員報酬' : '土井・給与';
 
-  resultSheet.getRange(1, 1, 1, numPatterns + 1).merge()
-    .setValue(titleText)
-    .setFontSize(14).setFontWeight('bold')
-    .setBackground('#4285f4').setFontColor('#ffffff').setHorizontalAlignment('center');
-  
-  // ヘッダー行（売上パターン）
+  // すべてのデータとスタイル情報を事前構築
+  const allData = [];
+  const allBackgrounds = [];
+  const allFontWeights = [];
+  const allNumberFormats = [];
+  const allFontColors = [];
+
+  // タイトル行（1行目）
+  const titleRow = [titleText];
+  for (let i = 1; i < numCols; i++) titleRow.push('');
+  allData.push(titleRow);
+  const titleBg = Array(numCols).fill('#4285f4');
+  allBackgrounds.push(titleBg);
+  const titleWeight = Array(numCols).fill('bold');
+  allFontWeights.push(titleWeight);
+  const titleFormat = Array(numCols).fill('@');
+  allNumberFormats.push(titleFormat);
+  const titleColor = Array(numCols).fill('#ffffff');
+  allFontColors.push(titleColor);
+
+  // 空行（2行目）
+  allData.push(Array(numCols).fill(''));
+  allBackgrounds.push(Array(numCols).fill('#ffffff'));
+  allFontWeights.push(Array(numCols).fill('normal'));
+  allNumberFormats.push(Array(numCols).fill('@'));
+  allFontColors.push(Array(numCols).fill('#000000'));
+
+  // ヘッダー行（3行目）
   const headerRow = ['項目'];
   for (let pattern of allResults) {
     headerRow.push(pattern.label + '\n（' + (pattern.revenue / 10000).toLocaleString() + '万円）');
   }
-  resultSheet.getRange(3, 1, 1, numPatterns + 1).setValues([headerRow]);
-  resultSheet.getRange(3, 1, 1, numPatterns + 1).setFontWeight('bold')
-    .setBackground('#e8f0fe').setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
-  
-  let currentRow = 4;
+  allData.push(headerRow);
+  allBackgrounds.push(Array(numCols).fill('#e8f0fe'));
+  allFontWeights.push(Array(numCols).fill('bold'));
+  allNumberFormats.push(Array(numCols).fill('@'));
+  allFontColors.push(Array(numCols).fill('#000000'));
   
   // データ行の構築
   const sections = [
@@ -1302,19 +1325,18 @@ function outputResultsWithVariations(allResults, futurePayoutTaxRate, retirement
       ]
     }
   ];
-  
-  // データを出力
+
+  // データを構築（配列として）
   for (let section of sections) {
-    // セクションタイトル
-    const titleRow = [section.title];
-    for (let i = 0; i < numPatterns; i++) {
-      titleRow.push('');
-    }
-    resultSheet.getRange(currentRow, 1, 1, numPatterns + 1).setValues([titleRow]);
-    resultSheet.getRange(currentRow, 1, 1, numPatterns + 1).merge()
-      .setFontWeight('bold').setBackground('#e8f0fe');
-    currentRow++;
-    
+    // セクションタイトル行
+    const sectionTitleRow = [section.title];
+    for (let i = 0; i < numPatterns; i++) sectionTitleRow.push('');
+    allData.push(sectionTitleRow);
+    allBackgrounds.push(Array(numCols).fill('#e8f0fe'));
+    allFontWeights.push(Array(numCols).fill('bold'));
+    allNumberFormats.push(Array(numCols).fill('@'));
+    allFontColors.push(Array(numCols).fill('#000000'));
+
     // データ行
     for (let rowDef of section.rows) {
       const label = typeof rowDef.label === 'function' ? rowDef.label(allResults[0]) : rowDef.label;
@@ -1323,51 +1345,89 @@ function outputResultsWithVariations(allResults, futurePayoutTaxRate, retirement
         const value = rowDef.getValue(pattern);
         dataRow.push(value);
       }
-      resultSheet.getRange(currentRow, 1, 1, numPatterns + 1).setValues([dataRow]);
-      
-      // 強調表示
-      if (rowDef.highlight) {
-        resultSheet.getRange(currentRow, 1, 1, numPatterns + 1)
-          .setFontWeight('bold').setBackground('#fff9c4');
-      }
-      
-      // 数値フォーマットと色付け
-      for (let col = 2; col <= numPatterns + 1; col++) {
-        const cell = resultSheet.getRange(currentRow, col);
-        const cellValue = cell.getValue();
+      allData.push(dataRow);
 
-        if (typeof cellValue === 'number') {
+      // 背景色・太字の設定
+      const rowBg = rowDef.highlight ? Array(numCols).fill('#fff9c4') : Array(numCols).fill('#ffffff');
+      allBackgrounds.push(rowBg);
+      const rowWeight = rowDef.highlight ? Array(numCols).fill('bold') : Array(numCols).fill('normal');
+      allFontWeights.push(rowWeight);
+
+      // 数値フォーマットと色
+      const rowFormats = ['@']; // 最初の列（ラベル）はテキスト
+      const rowColors = ['#000000'];
+
+      for (let i = 0; i < numPatterns; i++) {
+        const value = dataRow[i + 1];
+        if (typeof value === 'number') {
           if (rowDef.isPercent) {
-            // パーセントフォーマット
-            cell.setNumberFormat('0.00%');
+            rowFormats.push('0.00%');
           } else {
-            // 円フォーマット（マイナスは赤色）
-            cell.setNumberFormat('¥#,##0;[Red]-¥#,##0');
+            rowFormats.push('¥#,##0;[Red]-¥#,##0');
           }
-        } else if (typeof cellValue === 'string' && !rowDef.isPercent) {
-          // 文字列の場合でも数値チェック（例：標準報酬月額の「○○円」は除外）
-          const numValue = parseFloat(cellValue);
+          rowColors.push('#000000');
+        } else if (typeof value === 'string') {
+          const numValue = parseFloat(value);
           if (!isNaN(numValue) && numValue < 0) {
-            cell.setFontColor('#ff0000');
+            rowColors.push('#ff0000');
+          } else {
+            rowColors.push('#000000');
           }
+          rowFormats.push('@');
+        } else {
+          rowFormats.push('@');
+          rowColors.push('#000000');
         }
       }
-
-      currentRow++;
+      allNumberFormats.push(rowFormats);
+      allFontColors.push(rowColors);
     }
-    
-    currentRow++; // セクション間の空白
+
+    // セクション間の空白行
+    allData.push(Array(numCols).fill(''));
+    allBackgrounds.push(Array(numCols).fill('#ffffff'));
+    allFontWeights.push(Array(numCols).fill('normal'));
+    allNumberFormats.push(Array(numCols).fill('@'));
+    allFontColors.push(Array(numCols).fill('#000000'));
   }
-  
-  // 列幅設定
+
+  // ============ 一括書き込み（高速化） ============
+  const numRows = allData.length;
+
+  // 1. データを一括書き込み
+  resultSheet.getRange(1, 1, numRows, numCols).setValues(allData);
+
+  // 2. 背景色を一括適用
+  resultSheet.getRange(1, 1, numRows, numCols).setBackgrounds(allBackgrounds);
+
+  // 3. フォントウェイトを一括適用
+  resultSheet.getRange(1, 1, numRows, numCols).setFontWeights(allFontWeights);
+
+  // 4. 数値フォーマットを一括適用
+  resultSheet.getRange(1, 1, numRows, numCols).setNumberFormats(allNumberFormats);
+
+  // 5. フォントカラーを一括適用
+  resultSheet.getRange(1, 1, numRows, numCols).setFontColors(allFontColors);
+
+  // 6. タイトル行のマージと追加スタイル
+  resultSheet.getRange(1, 1, 1, numCols).merge()
+    .setFontSize(14).setFontColor('#ffffff').setHorizontalAlignment('center');
+
+  // 7. ヘッダー行のスタイル
+  resultSheet.getRange(3, 1, 1, numCols)
+    .setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
+
+  // 8. 列幅設定
   resultSheet.setColumnWidth(1, 250);
-  for (let col = 2; col <= numPatterns + 1; col++) {
+  for (let col = 2; col <= numCols; col++) {
     resultSheet.setColumnWidth(col, 130);
   }
-  
-  // 右揃え（数値列）
-  resultSheet.getRange(3, 2, currentRow - 3, numPatterns).setHorizontalAlignment('right');
-  
-  // 行の高さ調整（ヘッダー行）
+
+  // 9. 数値列の右揃え
+  if (numRows > 3) {
+    resultSheet.getRange(4, 2, numRows - 3, numPatterns).setHorizontalAlignment('right');
+  }
+
+  // 10. ヘッダー行の高さ調整
   resultSheet.setRowHeight(3, 50);
 }
