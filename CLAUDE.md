@@ -12,7 +12,7 @@ This is a Japanese tax and social insurance optimization program built for Googl
 
 ### People and Entities
 - **林佑樹 (Hayashi Yuki)**: Receives fixed salary from Veltra (¥9.9M/year) + variable compensation from P&I (business income). Individual business owner with ¥6.5M blue-form deduction. Lives in Kobe.
-- **土井郁子 (Doi Ikuko)**: Employee with iDeCo contributions (¥360k/year). Lives in Nishinomiya.
+- **土井郁子 (Doi Ikuko)**: Employee or executive. Company-funded corporate DC (¥660k/year). Lives in Nishinomiya.
 - **Linh**: Employee living in Kobe.
 - **配偶者専従者 (Spouse/Family Employee)**: Receives fixed ¥960k/year salary.
 - **合同会社P&I (P&I LLC)**: Consulting company with variable revenue. Pays salaries to employees and compensation to Hayashi.
