@@ -1287,41 +1287,6 @@ function outputResultsWithVariations(allResults, futurePayoutTaxRate, retirement
           const totalTedori = amount * (2 - hayashiRate - doiRate);
           return totalTedori - p.params.piAfterTaxProfitRealValue;
         }},
-        {label: '', getValue: (p) => ''},
-
-        {label: '【参考：固定額シミュレーション】', getValue: (p) => ''},
-        {label: '3000万円・林実効税率', getValue: (p) => calcRetirementTaxRate(30000000, retirementYears), isPercent: true},
-        {label: '3000万円・林手取り', getValue: (p) => 30000000 * (1 - calcRetirementTaxRate(30000000, retirementYears))},
-        {label: '3000万円・土井実効税率', getValue: (p) => {
-          if (!p.params.result.doiIsYakuin) return 'N/A';
-          return calcRetirementTaxRate(30000000, p.params.result.doiRetirementYears);
-        }, isPercent: true},
-        {label: '3000万円・土井手取り', getValue: (p) => {
-          if (!p.params.result.doiIsYakuin) return 'N/A';
-          return 30000000 * (1 - calcRetirementTaxRate(30000000, p.params.result.doiRetirementYears));
-        }},
-        {label: '', getValue: (p) => ''},
-        {label: '5000万円・林実効税率', getValue: (p) => calcRetirementTaxRate(50000000, retirementYears), isPercent: true},
-        {label: '5000万円・林手取り', getValue: (p) => 50000000 * (1 - calcRetirementTaxRate(50000000, retirementYears))},
-        {label: '5000万円・土井実効税率', getValue: (p) => {
-          if (!p.params.result.doiIsYakuin) return 'N/A';
-          return calcRetirementTaxRate(50000000, p.params.result.doiRetirementYears);
-        }, isPercent: true},
-        {label: '5000万円・土井手取り', getValue: (p) => {
-          if (!p.params.result.doiIsYakuin) return 'N/A';
-          return 50000000 * (1 - calcRetirementTaxRate(50000000, p.params.result.doiRetirementYears));
-        }},
-        {label: '', getValue: (p) => ''},
-        {label: '1億円・林実効税率', getValue: (p) => calcRetirementTaxRate(100000000, retirementYears), isPercent: true},
-        {label: '1億円・林手取り', getValue: (p) => 100000000 * (1 - calcRetirementTaxRate(100000000, retirementYears))},
-        {label: '1億円・土井実効税率', getValue: (p) => {
-          if (!p.params.result.doiIsYakuin) return 'N/A';
-          return calcRetirementTaxRate(100000000, p.params.result.doiRetirementYears);
-        }, isPercent: true},
-        {label: '1億円・土井手取り', getValue: (p) => {
-          if (!p.params.result.doiIsYakuin) return 'N/A';
-          return 100000000 * (1 - calcRetirementTaxRate(100000000, p.params.result.doiRetirementYears));
-        }}
       ]
     }
   ];
