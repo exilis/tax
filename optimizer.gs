@@ -1035,8 +1035,8 @@ function outputResultsWithVariations(allResults, futurePayoutTaxRate, retirement
         {label: '　専従者・手取り', getValue: (p) => p.params.result.haigushaTedori},
         {label: 'P&Iに残る利益（税引後・額面）', getValue: (p) => p.params.result.piIncome - p.params.result.piTax},
         {label: 'P&Iに残る利益（税引後・実質価値）', getValue: (p) => (p.params.result.piIncome - p.params.result.piTax) * (1 - futurePayoutTaxRate)},
-        {label: '　林佑樹・当分配差分', getValue: (p) => (p.params.result.hayashiTedori + p.params.result.haigushaTedori) - (p.params.result.totalTedori / 2)},
-        {label: '　土井郁子・当分配差分', getValue: (p) => p.params.result.doiTedori - (p.params.result.totalTedori / 2)},
+        {label: '　林佑樹・等分配差分', getValue: (p) => (p.params.result.hayashiTedori + p.params.result.haigushaTedori) - (p.params.result.totalTedori / 2)},
+        {label: '　土井郁子・等分配差分', getValue: (p) => p.params.result.doiTedori - (p.params.result.totalTedori / 2)},
         {label: 'Linhからの払い戻し後の残金', getValue: (p) => ((p.params.result.hayashiTedori + p.params.result.haigushaTedori) - (p.params.result.totalTedori / 2)) + (p.params.result.doiTedori - (p.params.result.totalTedori / 2)) + p.params.result.linhCost}
       ]
     },
