@@ -1395,4 +1395,8 @@ function outputResultsWithVariations(allResults, futurePayoutTaxRate, retirement
 
   // 10. ヘッダー行の高さ調整
   resultSheet.setRowHeight(3, 50);
+
+  // 11. 3行目までと1列目をフリーズ（スクロール時に固定表示）
+  resultSheet.setFrozenRows(3);
+  resultSheet.setFrozenColumns(1);
 }
