@@ -957,27 +957,7 @@ function outputResultsWithVariations(allResults, futurePayoutTaxRate, retirement
   const allNumberFormats = [];
   const allFontColors = [];
 
-  // タイトル行（1行目）
-  const titleRow = [titleText];
-  for (let i = 1; i < numCols; i++) titleRow.push('');
-  allData.push(titleRow);
-  const titleBg = Array(numCols).fill('#4285f4');
-  allBackgrounds.push(titleBg);
-  const titleWeight = Array(numCols).fill('bold');
-  allFontWeights.push(titleWeight);
-  const titleFormat = Array(numCols).fill('@');
-  allNumberFormats.push(titleFormat);
-  const titleColor = Array(numCols).fill('#ffffff');
-  allFontColors.push(titleColor);
-
-  // 空行（2行目）
-  allData.push(Array(numCols).fill(''));
-  allBackgrounds.push(Array(numCols).fill('#ffffff'));
-  allFontWeights.push(Array(numCols).fill('normal'));
-  allNumberFormats.push(Array(numCols).fill('@'));
-  allFontColors.push(Array(numCols).fill('#000000'));
-
-  // ヘッダー行（3行目）
+  // ヘッダー行（1行目）
   const headerRow = ['項目'];
   for (let pattern of allResults) {
     headerRow.push(pattern.label + '\n（' + (pattern.revenue / 10000).toLocaleString() + '万円）');
@@ -1014,6 +994,8 @@ function outputResultsWithVariations(allResults, futurePayoutTaxRate, retirement
         {label: '　林・土井・専従者の手取り', getValue: (p) => p.params.result.hayashiTedori + p.params.result.doiTedori + p.params.result.haigushaTedori},
         {label: '　Linhのコスト（給与+社保+中退共+DC）', getValue: (p) => p.params.result.linhCost},
         {label: '　P&Iの税引後利益（実質価値）', getValue: (p) => p.params.piAfterTaxProfitRealValue},
+        {label: '　　将来期待される役員退職金（額面）', getValue: (p) => p.params.result.piIncome - p.params.result.piTax},
+        {label: '　　将来期待される役員退職金（実質価値）', getValue: (p) => p.params.piAfterTaxProfitRealValue},
         {label: '　企業型DC・中退共（実質価値）', getValue: (p) => (p.params.result.hayashiKigyouDC + p.params.result.doiKigyouDC + p.params.result.doiChutaikyo) * 0.9},
         {label: '　　内訳：林・企業型DC', getValue: (p) => p.params.result.hayashiKigyouDC},
         {label: '　　内訳：土井・企業型DC', getValue: (p) => p.params.result.doiKigyouDC},
@@ -1374,29 +1356,25 @@ function outputResultsWithVariations(allResults, futurePayoutTaxRate, retirement
   // 5. フォントカラーを一括適用
   resultSheet.getRange(1, 1, numRows, numCols).setFontColors(allFontColors);
 
-  // 6. タイトル行のマージと追加スタイル
-  resultSheet.getRange(1, 1, 1, numCols).merge()
-    .setFontSize(14).setFontColor('#ffffff').setHorizontalAlignment('center');
-
-  // 7. ヘッダー行のスタイル
-  resultSheet.getRange(3, 1, 1, numCols)
+  // 6. ヘッダー行のスタイル
+  resultSheet.getRange(1, 1, 1, numCols)
     .setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
 
-  // 8. 列幅設定
+  // 7. 列幅設定
   resultSheet.setColumnWidth(1, 250);
   for (let col = 2; col <= numCols; col++) {
     resultSheet.setColumnWidth(col, 130);
   }
 
-  // 9. 数値列の右揃え
-  if (numRows > 3) {
-    resultSheet.getRange(4, 2, numRows - 3, numPatterns).setHorizontalAlignment('right');
+  // 8. 数値列の右揃え
+  if (numRows > 1) {
+    resultSheet.getRange(2, 2, numRows - 1, numPatterns).setHorizontalAlignment('right');
   }
 
-  // 10. ヘッダー行の高さ調整
-  resultSheet.setRowHeight(3, 50);
+  // 9. ヘッダー行の高さ調整
+  resultSheet.setRowHeight(1, 50);
 
-  // 11. 3行目までと1列目をフリーズ（スクロール時に固定表示）
-  resultSheet.setFrozenRows(3);
+  // 10. 1行目と1列目をフリーズ（スクロール時に固定表示）
+  resultSheet.setFrozenRows(1);
   resultSheet.setFrozenColumns(1);
 }
