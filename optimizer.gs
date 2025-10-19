@@ -999,14 +999,14 @@ function outputResultsWithVariations(allResults, futurePayoutTaxRate, retirement
         {label: '　（参考）1人あたり手取り（DC・中退共含む）', getValue: (p) => (p.params.result.hayashiTedori + p.params.result.doiTedori + p.params.result.haigushaTedori + p.params.result.linhCost + (p.params.result.hayashiKigyouDC + p.params.result.doiKigyouDC + p.params.result.doiChutaikyo) * 0.9) / 2},
         {label: '　（参考）1人あたり手取り（全資産・林100%退職金）', getValue: (p) => (p.params.result.hayashiTedori + p.params.result.doiTedori + p.params.result.haigushaTedori + p.params.result.linhCost + (p.params.result.hayashiKigyouDC + p.params.result.doiKigyouDC + p.params.result.doiChutaikyo) * 0.9 + p.params.piAfterTaxProfitRealValue) / 2},
         {label: '　（参考）1人あたり手取り（全資産・土井100%退職金）', getValue: (p) => {
-          if (!p.params.result.doiIsYakuin) return 'N/A（土井が従業員）';
+          if (!p.params.result.doiIsYakuin) return 'N/A';
           const piProfit = p.params.result.piIncome - p.params.result.piTax;
           const doiRetirementRate = calcRetirementTaxRate(piProfit, p.params.result.doiRetirementYears);
           const doiRetirementValue = piProfit * (1 - doiRetirementRate);
           return (p.params.result.hayashiTedori + p.params.result.doiTedori + p.params.result.haigushaTedori + p.params.result.linhCost + (p.params.result.hayashiKigyouDC + p.params.result.doiKigyouDC + p.params.result.doiChutaikyo) * 0.9 + doiRetirementValue) / 2;
         }},
         {label: '　（参考）1人あたり手取り（全資産・5:5分散退職金）', getValue: (p) => {
-          if (!p.params.result.doiIsYakuin) return 'N/A（土井が従業員）';
+          if (!p.params.result.doiIsYakuin) return 'N/A';
           const piProfit = p.params.result.piIncome - p.params.result.piTax;
           const hayashiAmount = piProfit * 0.5;
           const doiAmount = piProfit * 0.5;
