@@ -1219,7 +1219,7 @@ function outputResultsWithVariations(allResults, futurePayoutTaxRate, retirement
         {label: '退職金による節税額', getValue: (p) => (p.params.result.piIncome - p.params.result.piTax) * (0.20315 - p.params.retirementTaxRate)},
         {label: '', getValue: (p) => ''},
 
-        {label: '【分配パターン2：土井100%】', getValue: (p) => p.params.result.doiIsYakuin ? '' : 'N/A（土井が従業員のため）'},
+        {label: '【分配パターン2：土井100%】', getValue: (p) => p.params.result.doiIsYakuin ? '' : 'N/A'},
         {label: '土井・退職金額', getValue: (p) => p.params.result.doiIsYakuin ? p.params.result.piIncome - p.params.result.piTax : 'N/A'},
         {label: '土井・実効税率', getValue: (p) => {
           if (!p.params.result.doiIsYakuin) return 'N/A';
@@ -1249,7 +1249,7 @@ function outputResultsWithVariations(allResults, futurePayoutTaxRate, retirement
         }},
         {label: '', getValue: (p) => ''},
 
-        {label: '【分配パターン3：5:5均等分散】', getValue: (p) => p.params.result.doiIsYakuin ? '' : 'N/A（土井が従業員のため）'},
+        {label: '【分配パターン3：5:5均等分散】', getValue: (p) => p.params.result.doiIsYakuin ? '' : 'N/A'},
         {label: '林・退職金額', getValue: (p) => (p.params.result.piIncome - p.params.result.piTax) * 0.5},
         {label: '林・実効税率', getValue: (p) => {
           const amount = (p.params.result.piIncome - p.params.result.piTax) * 0.5;
