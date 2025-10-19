@@ -750,15 +750,35 @@ function runOptimization() {
   Logger.log('最適化を開始します - 目的：総資産の最大化、制約：P&I利益≥0 & 林事業所得≥0 & 土井給与≥35万円、Linh給与：兵庫県最低賃金で固定');
   Logger.log('内部留保の将来払出時想定税率：' + (futurePayoutTaxRate * 100) + '%');
   Logger.log('企業型DC・中退共の受取時想定税率：10%（退職所得控除適用）');
-  Logger.log('売上バリエーション：' + (revenueIncreaseStep / 10000).toLocaleString() + '万円刻みで+' + (revenueIncreaseMax / 10000).toLocaleString() + '万円まで');
+  Logger.log('売上バリエーション：+3000万円まで' + (revenueIncreaseStep / 10000).toLocaleString() + '万円刻み、+5000万円まで500万円刻み、+1億円まで1000万円刻み（最大+' + (revenueIncreaseMax / 10000).toLocaleString() + '万円）');
   Logger.log('土井郁子: 役員版と従業員版の両方を計算します');
 
-  // 売上バリエーション（パラメーター化）
+  // 売上バリエーション（可変刻み幅）
   const revenueVariations = [];
   revenueVariations.push({label: 'ベース', amount: consultingRevenueBase});
-  const numSteps = Math.floor(revenueIncreaseMax / revenueIncreaseStep);
-  for (let i = 1; i <= numSteps; i++) {
-    const increase = i * revenueIncreaseStep;
+
+  const increases = [];
+
+  // +3000万円まで: パラメータ指定の刻み幅
+  for (let i = revenueIncreaseStep; i <= Math.min(30000000, revenueIncreaseMax); i += revenueIncreaseStep) {
+    increases.push(i);
+  }
+
+  // +3000万円～+5000万円: 500万円刻み
+  if (revenueIncreaseMax > 30000000) {
+    for (let i = 35000000; i <= Math.min(50000000, revenueIncreaseMax); i += 5000000) {
+      increases.push(i);
+    }
+  }
+
+  // +5000万円～+1億円: 1000万円刻み
+  if (revenueIncreaseMax > 50000000) {
+    for (let i = 60000000; i <= Math.min(100000000, revenueIncreaseMax); i += 10000000) {
+      increases.push(i);
+    }
+  }
+
+  for (let increase of increases) {
     revenueVariations.push({
       label: '+' + (increase / 10000).toLocaleString() + '万円',
       amount: consultingRevenueBase + increase
